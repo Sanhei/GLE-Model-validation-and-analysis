@@ -58,13 +58,13 @@ cd timestep_changing
 g++ -o traj traj.cpp
 ./traj
 ```
-This part is for the simulation, will go the file, only to compile the code.
+This part is for the simulation, create a .txt(named by your discretised time step) file as your trajectory.
 ```bash
 cd ..
 make
 ./memoryextraction
 ```
-Then the data and all figures will in the "figure" director.
+This file will generate a kernel.txt which is the memory kernel. Then the correlation data and all figures will in the "figure" director. If you want to change the figure results, you can do it by changing fitting.py. 
 ## Space and Memory
 For now, we use 2GB trajectory, for several parameter settings, it works. However it is not enough, so maybe we want to try 8GB trajectory. As for memory occupied, FFT may use three times bigger than the trajectory size. So for each time correlation function, we record it in a text file, and read it again.
 The thing we need to care about is $C_{\triangledown U x}$, We need to record an additional trajectory size. So in total, it will $\mathbf{8}$ times bigger memory. For the optimization, we just use one core, and didn't set the threads. For FFTW, it should be defined as 4.

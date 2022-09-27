@@ -1,4 +1,4 @@
-# Non-Markovian Embedding model in Double-well potential.
+# Markovian Embedding model in Double-well potential.
 
 ## Trajectory making
 This will in the document named (timestep_changing)
@@ -44,8 +44,8 @@ In our program, we can call matplotlib function in python to directly plot the P
 ## Runing the program.
 Environment:
 GCC 14++ or higher version.
-FFTW.
-For fitting part and plotting, we use python. There we may use the package
+FFTW(boost/math for spline, akima spline need to set the boundary, but you can delete it). 
+For fitting part and plotting, we use python. There we may use the package: lmfit, matplotlib, numpy
 
 ```bash
 export PYTHONPATH="~/python_path/lib/python3.x/site-packages"
@@ -67,4 +67,4 @@ make
 This file will generate a kernel.txt which is the memory kernel. Then the correlation data and all figures will in the "figure" director. If you want to change the figure results, you can do it by changing fitting.py. 
 ## Space and Memory
 For now, we use 2GB trajectory, for several parameter settings, it works. However it is not enough, so maybe we want to try 8GB trajectory. As for memory occupied, FFT may use three times bigger than the trajectory size. So for each time correlation function, we record it in a text file, and read it again.
-The thing we need to care about is $C_{\triangledown U x}$, We need to record an additional trajectory size. So in total, it will $\mathbf{8}$ times bigger memory. For the optimization, we just use one core, and didn't set the threads. For FFTW, it should be defined as 4.
+The thing we need to care about is $C_{\triangledown U x}$, We need to record an additional trajectory size. So in total, it will $\mathbf{8}$ times bigger memory. For the optimization, we just use one core, and didn't set the threads. For FFTW, it could use multi threads.

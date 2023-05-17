@@ -68,7 +68,7 @@ This file will generate a kernel.txt which is the memory kernel. Then the correl
 
 ## Fitting Result
 The red curve is exponential fitting curve and blue solid line is input memory kernel. Here, we proved our model is self-consistant.
-![alt text](https://github.com/Sanhei/A-naive-memory-extraction/blob/main/potential.png?raw=true)
+![alt text](https://github.com/Sanhei/GLE-Model-validation-and-analysis/blob/main/Memorykernel.svg?raw=true)
 ## Space and Memory
 For now, we use 2GB trajectory, for several parameter settings, it works. However it is not enough, so maybe we want to try 8GB trajectory. As for memory occupied, FFT may use three times bigger than the trajectory size. So for each time correlation function, we record it in a text file, and read it again.
 The thing we need to care about is $C_{\triangledown U x}$, We need to record an additional trajectory size. So in total, it will $\mathbf{8}$ times bigger memory. For the optimization, we just use one core, and didn't set the threads. For FFTW, it could use multi threads.

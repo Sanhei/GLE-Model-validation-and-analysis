@@ -1,6 +1,6 @@
 # Markovian Embedding model in Double-well potential.
 Two main parameters: $\tau_m=\frac{m}{\tau_D}$, $\tau_\Gamma$. 
-$$\Gamma=\frac{\gamma}{\tau_\Gamma}e^{-\frac{t}/\tau_\Gamma}$$
+$$\Gamma=\frac{\gamma}{\tau_\Gamma}e^{-\frac{t}{\tau_\Gamma}$$
 $\tau_D=\frac{L^2/\gamma}{k_BT}$ is the friction-related diffusion time, the time taken to diffuse a distance $L$. $k_BT$ is thermal energy.
 
 

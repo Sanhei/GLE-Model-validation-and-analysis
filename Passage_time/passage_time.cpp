@@ -5,6 +5,7 @@
 #include <iterator>
 #include <algorithm>
 #include <cmath>
+#include <numeric>
 passage::passage(){}
 /*
  * The idea for the calculation:
@@ -15,7 +16,21 @@ passage::passage(){}
  * Here to avoid the initialize the size of vector, since we don't know how many cases will
  * happen, therefore we use two temperary vector to push them back.
  */
-void passage::passage_time(std::vector<double> traj, double time_interval)
+
+double cross_time(double traj_c, double traj_p, int index, double time_interval)
+{
+        // This function used to calculate the exact time of our passage crossing time.
+        // The reason is that we record the index not exactly when crossing happends,
+        // it will be always a bit more than exact time.
+        double velocity = abs(traj_c-traj_p)/time_interval;
+        // Calculate the velocity before pass the boundary
+        double t_between_boundary = abs(abs(traj_c)-1)/velocity;
+        //Calculate the absolute time
+        return index*time_interval-t_between_boundary;
+}
+
+
+void passage::passage_time(double time_interval, double upboundary, double downboundary)
 {
         //define the state for declare which states in double basin.
         double state;
@@ -23,8 +38,6 @@ void passage::passage_time(std::vector<double> traj, double time_interval)
         unsigned int jump = 0;
         int cross_state = 1;
 
-        upboundary = 1;
-        downboundary = -1;
         int beginning_state;
         int beginning_point;
         //Because we need to decide the initial state, this just to
@@ -62,6 +75,9 @@ void passage::passage_time(std::vector<double> traj, double time_interval)
 	                        cross_state = 1;
                                 jump += 1;
                                 uptemp.push_back(i);
+                                // For passage time test
+                                time_passage_up.push_back(i);
+
                                 downcrossing_index.push_back(downtemp);
                                 downtemp.clear();
                         }
@@ -71,12 +87,15 @@ void passage::passage_time(std::vector<double> traj, double time_interval)
                                 {
                                         cross_state = 0;
                                         downtemp.push_back(i);
-
+                                        time_passage_down.push_back(i);
                                 }
                                 if(traj[i]>downboundary & cross_state == 0 )
                                 {
                                         cross_state = 1;
                                         downtemp.push_back(i);
+
+
+                                        time_passage_down.push_back(i);
                                 }
                         }
 
@@ -88,6 +107,9 @@ void passage::passage_time(std::vector<double> traj, double time_interval)
                                 cross_state = 0;
                                 jump += 1;
                                 downtemp.push_back(i);
+
+                                time_passage_down.push_back(i);
+
                                 upcrossing_index.push_back(uptemp);
                                 uptemp.clear();
 
@@ -98,11 +120,15 @@ void passage::passage_time(std::vector<double> traj, double time_interval)
                                 {
                                         cross_state = 0;
                                         uptemp.push_back(i);
+                                        time_passage_up.push_back(i);
                                 }
                                 if(traj[i]>upboundary & cross_state == 0 )
                                 {
                                         cross_state = 1;
                                         uptemp.push_back(i);
+
+
+                                        time_passage_up.push_back(i);
                                 }
                         }
                 }
@@ -117,83 +143,107 @@ void passage::passage_time(std::vector<double> traj, double time_interval)
         std::cout<<"upcrossing_index size is "<<upcrossing_index.size()<<std::endl;
 
         std::cout<<"downcrossing_index size is "<<downcrossing_index.size()<<std::endl;
-
+        
         double ffpt;
         double passage_time_temp;
+        double jump_temp;
+        double passage_temp;
+        double transition_path_temp;
+        /*
+         * The idea for this part:
+         * Since we got each index of the 
+         * ----|-------------------|----upcrossing_index
+         *     .\                  |
+         *     . \     /\    /\    |
+         * -------\---/--\--/--\--/------downcrossing_index
+         *     .  .\ /.  .\/.  .\/..
+         * corresponding index to position
+         *     .  .   .  .  .  .  ..
+         *    up[0]   .  .  .  .  .up[1]
+         *        .   .  .  .  .  .  
+         *   down[0]  1  2  3  4  5
+         * The passage time in the lower well will be each index minus the next first element in
+         * upcrossing_index.
+         */
         for(unsigned int i=0; i<jump/2 -1; i++)
         {
                 if(beginning_state == 1)
                 {
-                        /*
-                       MFPT.push_back((downcrossing_index[i][0]-upcrossing_index[i][0])*time_interval);
-                        if(downcrossing_index[i][0]-upcrossing_index[i][0]<0)
-                                std::cout<<"1 wrong\n\n";
-                        MFPT.push_back((upcrossing_index[i+1][0]-downcrossing_index[i][0])*time_interval);
-                        if(downcrossing_index[i][0]-upcrossing_index[i+1][0]>0)
-                                std::cout<<"2 wrong\n\n";
-                                */
 
                         if(upcrossing_index[i].size()>1)
                         {
+                                jump_temp = cross_time(traj[downcrossing_index[i][0]], traj[downcrossing_index[i][0]-1], downcrossing_index[i][0], time_interval);
+                                passage_temp = cross_time(traj[upcrossing_index[i][0]], traj[upcrossing_index[i][0]-1], upcrossing_index[i][0], time_interval);
                                 ffpt = (downcrossing_index[i][0]-upcrossing_index[i][0])*time_interval;
+                                // time_down =
                                 FFPT.push_back(ffpt);
                                 passage_time_temp = 0.;
+                                transition_path_temp = jump_temp;
+                                transition_path_temp-= cross_time(traj[upcrossing_index[i].back()], traj[upcrossing_index[i].back()-1], upcrossing_index[i].back(), time_interval);
+                                TRAN.push_back(transition_path_temp);
                                 for(size_t j=0; j<upcrossing_index[i].size()-1;j++)
                                 {
-                                        passage_time_temp += (downcrossing_index[i][0]-upcrossing_index[i][j])*time_interval;
+                                        // passage_time_temp += (downcrossing_index[i][0]-upcrossing_index[i][j])*time_interval;
+                                        passage_temp = cross_time(traj[upcrossing_index[i][j]], traj[upcrossing_index[i][j]-1], upcrossing_index[i][j], time_interval);
+                                        passage_time_temp = jump_temp - passage_temp; 
+                                        MFPT.push_back(passage_time_temp);
                                 }
-                                MFPT.push_back(passage_time_temp/(upcrossing_index[i].size()-1));
                         }
                         if(downcrossing_index[i].size()>1)
                         {
-                                ffpt = (upcrossing_index[i+1][0]-downcrossing_index[i][0])*time_interval;
+                                jump_temp = cross_time(traj[upcrossing_index[i+1][0]], traj[upcrossing_index[i+1][0]-1], upcrossing_index[i+1][0], time_interval);
+                                passage_temp = cross_time(traj[downcrossing_index[i][0]], traj[downcrossing_index[i][0]-1], downcrossing_index[i][0],time_interval);
+                                ffpt = jump_temp - passage_temp;
                                 FFPT.push_back(ffpt);
                                 passage_time_temp = 0.;
+                                transition_path_temp = jump_temp;
+                                transition_path_temp-= cross_time(traj[downcrossing_index[i].back()], traj[downcrossing_index[i].back()-1], downcrossing_index[i].back(), time_interval);
+                                TRAN.push_back(transition_path_temp);
                                 for(size_t j=0; j<downcrossing_index[i].size()-1;j++)
                                 {
-                                        passage_time_temp += (upcrossing_index[i+1][0]-downcrossing_index[i][j])*time_interval;
+                                        passage_temp = cross_time(traj[downcrossing_index[i][j]], traj[downcrossing_index[i][j]-1], downcrossing_index[i][j],time_interval);
+                                        passage_time_temp = jump_temp - passage_temp; 
+                                        MFPT.push_back(passage_time_temp);
                                 }
-                                MFPT.push_back(passage_time_temp/(downcrossing_index[i].size()-1));
                         }
                 }
                 else
                 {
-                        /*
-                        MFPT.push_back((upcrossing_index[i][0]-downcrossing_index[i][0])*time_interval);
-                        if(downcrossing_index[i][0]-upcrossing_index[i][0]>0)
-                                std::cout<<"3 wrong\n\n";
-                        MFPT.push_back((downcrossing_index[i+1][0]-upcrossing_index[i][0])*time_interval);
-                        if(downcrossing_index[i+1][0]-upcrossing_index[i][0]<0)
-                                std::cout<<"4 wrong\n\n";
-
                         if(downcrossing_index[i].size()>1)
                         {
-                                MSPT.push_back((upcrossing_index[i][0]-downcrossing_index[i][1])*time_interval);
-                                //std::cout<<"MSPT pass"<<std::endl;
-                        }
-                        if(upcrossing_index[i].size()>1)
-                        */
-                        if(downcrossing_index[i].size()>1)
-                        {
-                                ffpt = (upcrossing_index[i][0]-downcrossing_index[i][0])*time_interval;
+                                jump_temp = cross_time(traj[upcrossing_index[i][0]], traj[upcrossing_index[i][0]-1], upcrossing_index[i][0], time_interval);
+                                passage_temp = cross_time(traj[downcrossing_index[i][0]], traj[downcrossing_index[i][0]-1], downcrossing_index[i][0], time_interval);
+                                ffpt = jump_temp - passage_temp;
                                 FFPT.push_back(ffpt);
+                                transition_path_temp = jump_temp;
+                                transition_path_temp-= cross_time(traj[downcrossing_index[i].back()], traj[downcrossing_index[i].back()-1], downcrossing_index[i].back(), time_interval);
+                                TRAN.push_back(transition_path_temp);
                                 passage_time_temp = 0.;
-                                for(size_t j=0; j<downcrossing_index[i].size()-1;j++)
+                                for(size_t j=0; j<downcrossing_index[i].size();j++)
                                 {
-                                        passage_time_temp += (upcrossing_index[i][0]-downcrossing_index[i][j])*time_interval;
+                                        passage_temp = cross_time(traj[downcrossing_index[i][j]], traj[downcrossing_index[i][j]-1], downcrossing_index[i][j], time_interval);
+                                        time_passage_down.push_back(passage_temp);
+                                        passage_time_temp = jump_temp - passage_temp;
+                                        MFPT.push_back(passage_time_temp);
                                 }
-                                MFPT.push_back(passage_time_temp/(downcrossing_index[i].size()-1));
                         }
                         if(upcrossing_index[i].size()>1)
                         {
-                                ffpt = (downcrossing_index[i+1][0]-upcrossing_index[i][0])*time_interval;
+                                jump_temp = cross_time(traj[downcrossing_index[i+1][0]], traj[downcrossing_index[i+1][0]-1], downcrossing_index[i+1][0], time_interval);
+                                passage_temp = cross_time(traj[upcrossing_index[i][0]], traj[upcrossing_index[i][0]-1], upcrossing_index[i][0],time_interval);
+                                ffpt = jump_temp - passage_temp;
                                 FFPT.push_back(ffpt);
+                                transition_path_temp = jump_temp;
+                                transition_path_temp -= cross_time(traj[upcrossing_index[i].back()], traj[upcrossing_index[i].back()-1], upcrossing_index[i].back(), time_interval);
+                                TRAN.push_back(transition_path_temp);
                                 passage_time_temp = 0.;
-                                for(size_t j=0; j<upcrossing_index[i].size()-1;j++)
+                                for(size_t j=0; j<upcrossing_index[i].size();j++)
                                 {
-                                        passage_time_temp += (downcrossing_index[i+1][0]-upcrossing_index[i][j])*time_interval;
+                                        passage_temp = cross_time(traj[upcrossing_index[i][j]], traj[upcrossing_index[i][j]-1], upcrossing_index[i][j],time_interval);
+                                        time_passage_up.push_back(passage_temp);
+                                        passage_time_temp = jump_temp - passage_temp;
+                                        MFPT.push_back(passage_time_temp);
                                 }
-                                MFPT.push_back(passage_time_temp/(upcrossing_index[i].size()-1));
                         }
                 }
                 if(upcrossing_index[i].size()-1>0)
@@ -203,8 +253,16 @@ void passage::passage_time(std::vector<double> traj, double time_interval)
                 	}
         }
         std::cout<<"Transfer index to time"<<std::endl;
-               // 2. reverse trajectory.
-        //Distributuib Calculation.
+
+        // For calculate the mean all first passage time;
+        std::cout<<"MFPT size is "<<MFPT.size()<<std::endl;
+        std::cout<<"Boundary is "<<upboundary<<" "<<downboundary;
+        std::cout<<"Transition path size is "<<TRAN.size()<<std::endl;
+        std::cout<<std::endl;
+
+        std::cout<<std::endl;
+        std::cout<<std::endl;
+
 }
 
 void passage::histogram_build(int discretize, std::vector<double> &trajectory)
@@ -212,6 +270,7 @@ void passage::histogram_build(int discretize, std::vector<double> &trajectory)
     histogram_discretize = discretize;
     hist_plot.clear();
     hist_accum.clear();
+    hist_bin.clear();
     double max_boundary = *std::max_element(trajectory.begin(), trajectory.end());
     double min_boundary = *std::min_element(trajectory.begin(), trajectory.end());
     std::vector<int> histogram_init;
@@ -225,6 +284,7 @@ void passage::histogram_build(int discretize, std::vector<double> &trajectory)
     for(unsigned int i=0; i<hist_nbins; i++)
     {
         hist_accum.push_back(0);
+        hist_bin.push_back(0);
     }
     std::cout<<"The histogram maximum:"<<hist_max/(double)histogram_discretize<<std::endl;
     hist_maximum_edge = hist_max/(double)histogram_discretize;
@@ -236,7 +296,7 @@ void passage::histogram_build(int discretize, std::vector<double> &trajectory)
         hist_plot.push_back(0);
     for(int i = 0; i<hist_nbins; i++)
     {
-        hist_plot[i]=(hist_min+i)/(double)histogram_discretize;
+        hist_plot[i]=(hist_min+i+0.5)/(double)discretize;
         if(i==0)
         {
             std::cout<<"Test: the minmum edge of histogram is "<<hist_min/(double)histogram_discretize<<std::endl;
@@ -244,20 +304,31 @@ void passage::histogram_build(int discretize, std::vector<double> &trajectory)
         }
     }
     //This gives each point probability weight.
-    static double rescale =  1*histogram_discretize/(double)trajectory.size();
     int hist_index = 0;
     for(unsigned int i= 0; i < histogram_init.size(); i++)
     {
-        hist_accum[histogram_init[i]-hist_min] +=  1*rescale;
+        hist_accum[histogram_init[i]-hist_min] +=  1;
+        hist_bin[histogram_init[i]-hist_min] +=  1;
     }
     histogram_init.clear();
        //Test out:
     double sum = 0;
     for( unsigned int i = 0; i<hist_accum.size(); i++)
     {
-        sum += hist_accum[i]/histogram_discretize;
+        sum += hist_accum[i]/discretize;
     }
-
+    // static double rescale =  sum*discretize;
+    for(unsigned int i =0; i< hist_accum.size(); i++)
+    {
+        hist_accum[i] = hist_accum[i]/(sum*1/discretize); 
+    }
+    histogram_init.clear();
+    sum = 0;
+    for( unsigned int i = 0; i<hist_accum.size(); i++)
+    {
+        sum += hist_accum[i]/discretize;
+    }
+ 
 
 
     std::cout<<"Integrate over the histogram is "<<sum<<std::endl;
